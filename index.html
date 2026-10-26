@@ -640,6 +640,10 @@ addEventListener("scroll", () => navEl.classList.toggle("scrolled", scrollY > 40
 
 /* ---------- Painel da imobiliária ---------- */
 let artifactCap = null, assetsCap = null, canEdit = false, dirty = false, saving = false;
+// "claude": site aberto no claude.ai. "web": site na Vercel, salvando no GitHub pelas rotas /api.
+let modo = null, sessaoWeb = false, shaWeb = null, semServidor = false;
+const previa = {};
+const podeFoto = () => !!assetsCap || modo === "web";
 let tab = "imoveis", editing = null, confirmDel = null;
 const pBody = $("pBody");
 const TIPOS = ["Casa","Apartamento","Lote","Chácara","Terra","Comercial"];
@@ -648,7 +652,7 @@ function changed(){ setDirty(true); renderAll(); }
 const field = (id, label, value, opts={}) => opts.area
   ? `<label class="pf"><span>${label}</span><textarea id="${id}" rows="${opts.rows||3}">${esc(value)}</textarea>${opts.hint ? `<small>${opts.hint}</small>` : ""}</label>`
   : `<label class="pf"><span>${label}</span><input id="${id}" type="${opts.type||"text"}" ${opts.type==="number" ? 'min="0" inputmode="numeric"' : ""} value="${esc(value)}" ${opts.ph ? `placeholder="${esc(opts.ph)}"` : ""}>${opts.hint ? `<small>${opts.hint}</small>` : ""}</label>`;
-const thumb = (src, cls="") => `<div class="p-thumb ${cls}">${src ? `<img src="${esc(src)}" alt="" loading="lazy">` : ""}</div>`;
+const thumb = (src, cls="") => `<div class="p-thumb ${cls}">${src ? `<img src="${esc(previa[src] || src)}" alt="" loading="lazy">` : ""}</div>`;
 
 function renderPainel(){
   $("tabImoveis").setAttribute("aria-selected", tab === "imoveis");
@@ -686,8 +690,8 @@ function renderImovelForm(){
     <fieldset class="p-set"><legend>Fotos</legend>
       <small>A primeira foto é a capa do anúncio. Use as setas para mudar a ordem.</small>
       <ul class="p-fotos" id="pFotos"></ul>
-      <div><label class="btn ghost p-upload" ${assetsCap ? "" : "hidden"}>+ Adicionar fotos<input type="file" id="pFile" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
-      <small id="pUpMsg">${assetsCap ? "Pode escolher várias fotos de uma vez." : "Enviar fotos não está disponível nesta visualização."}</small></div>
+      <div><label class="btn ghost p-upload" ${podeFoto() ? "" : "hidden"}>+ Adicionar fotos<input type="file" id="pFile" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
+      <small id="pUpMsg">${podeFoto() ? "Pode escolher várias fotos de uma vez." : "Enviar fotos não está disponível nesta visualização."}</small></div>
     </fieldset>
     ${field("fTitulo","Título do anúncio",p.titulo)}
     <div class="p-row">
@@ -717,8 +721,8 @@ function renderLojaForm(){
   pBody.innerHTML = `
     <fieldset class="p-set"><legend>Foto do topo do site</legend>
       <div class="p-photo">${thumb(L.heroImg,"wide")}
-      <div><label class="btn ghost p-upload" ${assetsCap ? "" : "hidden"}>Trocar foto<input type="file" id="pHero" accept="image/jpeg,image/png,image/webp" hidden></label>
-      <small id="pHeroMsg">${assetsCap ? "Use uma foto deitada (horizontal), de preferência." : "Trocar a foto não está disponível nesta visualização."}</small></div></div>
+      <div><label class="btn ghost p-upload" ${podeFoto() ? "" : "hidden"}>Trocar foto<input type="file" id="pHero" accept="image/jpeg,image/png,image/webp" hidden></label>
+      <small id="pHeroMsg">${podeFoto() ? "Use uma foto deitada (horizontal), de preferência." : "Trocar a foto não está disponível nesta visualização."}</small></div></div>
     </fieldset>
     <fieldset class="p-set"><legend>WhatsApp e corretor</legend>
       <small>Use 55 + DDD + número, só números.</small>
@@ -735,12 +739,14 @@ function renderLojaForm(){
       ${field("lS2","Segundo parágrafo",L.sobre2,{area:true,rows:4})}
       <div class="p-row p-row3">${field("lAnos","Anos de mercado",L.anos)}${field("lSeg","Seguidores",L.seguidores,{ph:"5,1 mil"})}${field("lCreci","CRECI da imobiliária",L.creci)}</div>
     </fieldset>
-    <fieldset class="p-set"><legend>Acesso ao painel</legend>
+    ${modo === "web" ? `<fieldset class="p-set"><legend>Acesso ao painel</legend>
+      <small>O usuário e a senha deste painel ficam na Vercel, em Settings → Environment Variables (ADMIN_USER e ADMIN_PASSWORD).</small>
+    </fieldset>` : `<fieldset class="p-set"><legend>Acesso ao painel</legend>
       <small>Usuário atual: <b>${esc((D.acesso||{}).usuario||"")}</b>. Para trocar a senha, digite a nova duas vezes e toque em Trocar senha.</small>
       <div class="p-row"><label class="pf"><span>Nova senha</span><input id="nsA" type="password" autocomplete="new-password"></label><label class="pf"><span>Repita a nova senha</span><input id="nsB" type="password" autocomplete="new-password"></label></div>
       <button class="btn ghost" id="nsGo" type="button">Trocar senha</button>
       <small id="nsMsg"></small>
-    </fieldset>`;
+    </fieldset>`}`;
 }
 async function trocarSenha(){
   const a = $("nsA").value, b = $("nsB").value, m = $("nsMsg");
@@ -771,14 +777,41 @@ pBody.addEventListener("input", e => {
     changed();
   }
 });
-const erroFoto = err => ({too_large:"A foto passou de 20 MB. Mande uma menor.", unsupported_type:"Use uma foto JPG, PNG ou WEBP.", rate_limited:"Muitos envios seguidos. Espere um pouco e tente de novo."}[err && err.code] || "Não deu para enviar a foto agora. Tente de novo em instantes.");
+const erroFoto = err => ({too_large:"A foto passou de 20 MB. Mande uma menor.", unsupported_type:"Use uma foto JPG, PNG ou WEBP.", rate_limited:"Muitos envios seguidos. Espere um pouco e tente de novo.", sessao:"Sua sessão acabou. Saia e entre de novo."}[err && err.code] || "Não deu para enviar a foto agora. Tente de novo em instantes.");
+// Na Vercel, a foto é reduzida no navegador e gravada em fotos/ no GitHub.
+function reduzir(file, max = 1600){
+  return new Promise((ok, falha) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      ok(c.toDataURL("image/jpeg", 0.82).split(",")[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); falha({code: "unsupported_type"}); };
+    img.src = url;
+  });
+}
+async function enviarFoto(file){
+  if (modo !== "web") { const r = await assetsCap.upload(file, {type: file.type}); return "/_blob/" + r.id; }
+  const r = await api("foto", {tipo: "image/jpeg", base64: await reduzir(file)});
+  if (!r.ok) throw {code: r.corpo.erro === "grande" ? "too_large" : r.status === 401 ? "sessao" : "web"};
+  previa[r.corpo.caminho] = URL.createObjectURL(file);
+  return r.corpo.caminho;
+}
+async function api(rota, corpo){
+  try {
+    const r = await fetch("/api/" + rota, corpo === undefined ? {credentials: "same-origin", cache: "no-store"} : {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json"}, body: JSON.stringify(corpo)});
+    return {ok: r.ok, status: r.status, corpo: await r.json().catch(() => ({}))};
+  } catch (e) { return {ok: false, status: 0, corpo: {}}; }
+}
 pBody.addEventListener("change", async e => {
   const t = e.target;
   if (t.id === "pFile" && t.files.length && editing) {
     const files = [...t.files], alvo = editing; let ok = 0;
     for (const [n, file] of files.entries()) {
       $("pUpMsg").textContent = `Enviando foto ${n+1} de ${files.length}…`;
-      try { const r = await assetsCap.upload(file, {type: file.type}); (alvo.fotos = alvo.fotos || []).push("/_blob/" + r.id); ok++; if (editing === alvo) renderFotos(); }
+      try { (alvo.fotos = alvo.fotos || []).push(await enviarFoto(file)); ok++; if (editing === alvo) renderFotos(); }
       catch (err) { $("pUpMsg").textContent = erroFoto(err); }
     }
     t.value = "";
@@ -786,7 +819,7 @@ pBody.addEventListener("change", async e => {
   }
   if (t.id === "pHero" && t.files[0]) {
     $("pHeroMsg").textContent = "Enviando foto…";
-    try { const r = await assetsCap.upload(t.files[0], {type: t.files[0].type}); D.loja.heroImg = "/_blob/" + r.id; changed(); renderLojaForm(); $("pHeroMsg").textContent = "Foto trocada. Toque em Salvar para todo mundo ver."; }
+    try { D.loja.heroImg = await enviarFoto(t.files[0]); changed(); renderLojaForm(); $("pHeroMsg").textContent = "Foto trocada. Toque em Salvar para todo mundo ver."; }
     catch (err) { $("pHeroMsg").textContent = erroFoto(err); }
   }
 });
@@ -815,7 +848,7 @@ $("tabImoveis").onclick = () => { tab = "imoveis"; renderPainel(); pBody.scrollT
 $("tabLoja").onclick = () => { tab = "loja"; editing = null; renderPainel(); pBody.scrollTop = 0; };
 // O painel é uma página à parte (#painel); o site fica limpo, sem botão de edição.
 function rota(){
-  const p = location.hash === "#painel" && canEdit && artifactCap;
+  const p = location.hash === "#painel" && (modo === "web" || (canEdit && artifactCap));
   $("painel").hidden = !p; document.body.classList.toggle("modo-painel", !!p);
   if (!p) return;
   const travado = !logado();
@@ -825,16 +858,21 @@ function rota(){
 
 /* Login e senha do painel: a senha nunca fica guardada, só um resumo (hash) dela em dados.json. */
 const LK = "pezao-painel";
-function logado(){ try { return !!D.acesso && sessionStorage.getItem(LK) === D.acesso.hash; } catch(e) { return false; } }
+function logado(){ if (modo === "web") return sessaoWeb; try { return !!D.acesso && sessionStorage.getItem(LK) === D.acesso.hash; } catch(e) { return false; } }
 function entrar(){ try { sessionStorage.setItem(LK, D.acesso.hash); } catch(e) {} }
-function sair(){ try { sessionStorage.removeItem(LK); } catch(e) {} rota(); }
+function sair(){ if (modo === "web") { api("sair", {}); sessaoWeb = false; setDirty(false); return rota(); } try { sessionStorage.removeItem(LK); } catch(e) {} rota(); }
 async function resumo(salt, senha){
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt + ":" + senha));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 const novoSalt = () => [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join("");
 function renderLogin(msg){
-  const criar = !D.acesso;
+  const criar = modo !== "web" && !D.acesso;
+  if (modo === "web" && semServidor) {
+    $("pLogin").innerHTML = `<form><div class="p-brand"><img src="logo.png" alt=""><b>Painel da imobiliária</b></div>
+      <h2>Painel desligado aqui</h2><p>Este endereço só mostra o site. O painel funciona no endereço da Vercel, depois que ela estiver configurada (veja o README do GitHub).</p></form>`;
+    return;
+  }
   $("pLogin").innerHTML = `
     <form id="lgForm" autocomplete="on">
       <div class="p-brand"><img src="logo.png" alt=""><b>Painel da imobiliária</b></div>
@@ -855,6 +893,13 @@ async function enviarLogin(e){
   const user = $("lgUser").value.trim().toLowerCase(), senha = $("lgPass").value;
   const erro = t => { $("lgMsg").textContent = t; $("lgMsg").className = "erro"; };
   if (!user || !senha) return erro("Preencha usuário e senha.");
+  if (modo === "web") {
+    $("lgGo").disabled = true; $("lgMsg").className = ""; $("lgMsg").textContent = "Entrando…";
+    const r = await api("login", {usuario: user, senha});
+    $("lgGo").disabled = false;
+    if (!r.ok) return erro(r.corpo.erro === "config" ? "O painel ainda não foi configurado na Vercel (faltam: " + (r.corpo.falta || []).join(", ") + ")." : r.status === 401 ? "Usuário ou senha incorretos." : "Não deu para entrar agora. Tente de novo.");
+    return carregarWeb();
+  }
   if (!D.acesso) {
     if (senha.length < 6) return erro("Use uma senha com pelo menos 6 caracteres.");
     if (senha !== $("lgPass2").value) return erro("As duas senhas não estão iguais.");
@@ -875,7 +920,22 @@ $("pClose").onclick = closePainel;
 window.addEventListener("hashchange", rota);
 const toastEl = $("toast");
 function toast(t){ toastEl.textContent = t; toastEl.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.hidden = true, 2600); }
+async function carregarWeb(){
+  const r = await api("dados");
+  if (!r.ok) { sessaoWeb = false; return renderLogin(r.status === 401 ? "" : "Não deu para abrir o conteúdo do site. Confira o GITHUB_TOKEN na Vercel."); }
+  D = r.corpo.dados; D.imoveis = D.imoveis || []; D.loja = D.loja || {}; shaWeb = r.corpo.sha;
+  sessaoWeb = true; editing = null; setDirty(false); renderAll(); rota();
+}
+async function salvarWeb(okMsg){
+  saving = true; $("pSave").disabled = true; $("pMsg").textContent = "Salvando…";
+  const r = await api("dados", {dados: D, sha: shaWeb});
+  saving = false; $("pSave").disabled = false;
+  if (r.ok) { shaWeb = r.corpo.sha; setDirty(false); $("pMsg").textContent = "Salvo! O site atualiza para todo mundo em cerca de 1 minuto."; toast(okMsg || "Site salvo"); return true; }
+  $("pMsg").textContent = {sessao: "Sua sessão acabou. Saia e entre de novo para salvar.", conflito: "O site mudou enquanto você editava. Saia e entre de novo para pegar a versão mais nova.", token: "O GitHub recusou salvar. Confira o GITHUB_TOKEN na Vercel."}[r.corpo.erro] || "Não deu para salvar agora. Tente de novo em instantes.";
+  return false;
+}
 async function salvar(okMsg){
+  if (modo === "web") return saving ? false : salvarWeb(okMsg);
   if (saving || !artifactCap) return false;
   saving = true; $("pSave").disabled = true; $("pMsg").textContent = "Salvando…";
   try {
@@ -902,7 +962,14 @@ $("pSave").onclick = () => salvar();
 window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
 
 async function ligarPainel(){
-  if (!window.claude || !window.claude.use) return;
+  if (!window.claude || !window.claude.use) {
+    modo = "web"; $("fAdmin").hidden = false;
+    const r = await api("sessao");
+    semServidor = !r.ok;
+    if (r.ok && r.corpo.logado) return carregarWeb();
+    return rota();
+  }
+  modo = "claude";
   const user = await window.claude.use("user");
   canEdit = user ? await user.canEdit() : false;
   if (!canEdit) return;

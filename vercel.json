@@ -1,0 +1,5 @@
+{
+  "headers": [
+    { "source": "/dados.json", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}
