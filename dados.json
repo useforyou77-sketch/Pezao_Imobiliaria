@@ -1,0 +1,102 @@
+{
+ "imoveis": [
+  {
+   "id": "imperial",
+   "titulo": "Casa no Jardim Imperial",
+   "tipo": "Casa",
+   "neg": "venda",
+   "preco": 370000,
+   "bairro": "Jardim Imperial",
+   "q": 3,
+   "b": 2,
+   "v": 1,
+   "m2": 104,
+   "terreno": 150,
+   "tag": "Nova",
+   "oculto": false,
+   "feats": "3 quartos (1 suíte), construção toda na laje, piso em porcelanato, iluminação em LED, jardim.",
+   "fotos": [
+    "fotos/imperial-1.jpg",
+    "fotos/imperial-2.jpg",
+    "fotos/imperial-3.jpg",
+    "fotos/imperial-4.jpg",
+    "fotos/imperial-5.jpg",
+    "fotos/imperial-6.jpg",
+    "fotos/imperial-7.jpg",
+    "fotos/imperial-8.jpg",
+    "fotos/imperial-9.jpg",
+    "fotos/imperial-10.jpg"
+   ]
+  },
+  {
+   "id": "terezinha",
+   "titulo": "Casa no Res. Terezinha Glória",
+   "tipo": "Casa",
+   "neg": "venda",
+   "preco": 365000,
+   "bairro": "Residencial Terezinha Glória",
+   "q": 2,
+   "b": 2,
+   "v": 2,
+   "m2": 150,
+   "terreno": 250,
+   "tag": "Destaque",
+   "oculto": false,
+   "feats": "2 quartos (1 suíte), cozinha ampla com balcão e armários, despensa grande, jardim, contra o sol da tarde.",
+   "fotos": [
+    "fotos/terezinha-1.jpg",
+    "fotos/terezinha-2.jpg",
+    "fotos/terezinha-3.jpg",
+    "fotos/terezinha-4.jpg",
+    "fotos/terezinha-5.jpg",
+    "fotos/terezinha-6.jpg",
+    "fotos/terezinha-7.jpg",
+    "fotos/terezinha-8.jpg",
+    "fotos/terezinha-9.jpg",
+    "fotos/terezinha-10.jpg"
+   ]
+  },
+  {
+   "id": "xixa",
+   "titulo": "Casa em frente ao clube",
+   "tipo": "Casa",
+   "neg": "venda",
+   "preco": 290000,
+   "bairro": "São Sebastião do Xixá",
+   "q": 3,
+   "b": 1,
+   "v": 1,
+   "m2": 0,
+   "terreno": 0,
+   "tag": "Oportunidade",
+   "oculto": false,
+   "feats": "Portão eletrônico, varanda nos fundos com área de serviço, quintal grande, forro de gesso sancado.",
+   "fotos": [
+    "fotos/xixa-1.jpg",
+    "fotos/xixa-2.jpg",
+    "fotos/xixa-3.jpg",
+    "fotos/xixa-4.jpg",
+    "fotos/xixa-5.jpg",
+    "fotos/xixa-6.jpg",
+    "fotos/xixa-7.jpg",
+    "fotos/xixa-8.jpg",
+    "fotos/xixa-9.jpg"
+   ]
+  }
+ ],
+ "loja": {
+  "whatsapp": "5562984881287",
+  "corretorNome": "Tom",
+  "corretorCreci": "F 49.574",
+  "corretorFone": "5562993169750",
+  "endereco": "Rua 45, nº 859, Centro, Itapuranga - GO, 76680-000",
+  "instagram": "https://www.instagram.com/pezaoimoveis",
+  "creci": "25.097",
+  "anos": "30",
+  "seguidores": "5,1 mil",
+  "heroImg": "fotos/imperial-1.jpg",
+  "sobre1": "Estamos há mais de 30 anos no mercado imobiliário de Itapuranga e região.",
+  "sobre2": "Trabalhamos com compra, venda, avaliação e contratos de locação urbana e rural: casas, lotes, loteamentos, chácaras e terras, sempre com transparência em cada etapa da negociação."
+ },
+ "acesso": null
+}
